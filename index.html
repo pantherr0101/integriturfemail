@@ -184,12 +184,21 @@
             body: JSON.stringify(payload)
           });
   
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Make webhook failed: ${response.status} — ${errorText}`);
+          const raw = await response.text();
+
+          let result;
+          try {
+            result = JSON.parse(raw);
+          } catch (err) {
+            throw new Error(`Invalid JSON from Make: ${raw}`);
           }
-  
-          const result = await response.json();
+          
+          if (response.ok && result.status === "success") {
+            window.location.href = "success.html";
+          } else {
+            errorMessage.textContent = "Sorry, we couldn't find you in our system.";
+            errorMessage.style.display = "block";
+          }
   
           if (result.status === "success") {
             window.location.href = "success.html";
