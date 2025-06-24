@@ -166,6 +166,12 @@
   
         const makeWebhookUrl = 'https://hook.us2.make.com/k92h9keuxj88m49dirrtfo3jbnlyi5za';
   
+        function formatPhoneForAirtable(raw) {
+          const digits = raw.replace(/\D/g, '');
+          if (digits.length !== 10) return raw; // fallback if formatting fails
+          return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+        }
+        
         try {
           const payload = {
             firstName: data.firstName || '',
