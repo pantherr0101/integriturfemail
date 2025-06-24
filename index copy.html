@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Opt-In Form - IntegriTurf</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .form-container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+    }
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #2c2c2c;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    label {
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #333;
+    }
+    .checkbox-group {
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .checkbox-group input {
+      margin-right: 10px;
+    }
+    button {
+      background: linear-gradient(135deg, #7CB342 0%, #689F38 100%);
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .error-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #d32f2f;
+      display: none;
+      text-align: center;
+    }
+    .privacy-note {
+      margin-top: 15px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+    .privacy-note a {
+      color: #7CB342;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Please provide your contact details</h2>
+    <form id="optin-form">
+      <label for="firstName">First Name*</label>
+      <input type="text" name="firstName" required>
+
+      <label for="lastName">Last Name*</label>
+      <input type="text" name="lastName" required>
+
+      <label for="email">Email*</label>
+      <input type="email" name="email" required>
+
+      <label for="phone">Phone Number*</label>
+      <input type="tel" name="phone" required>
+
+      <div class="checkbox-group">
+        <input type="checkbox" name="offers">
+        <label for="offers">I would like to receive offers and news</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" name="terms" required>
+        <label for="terms">I accept the <a href="privacy.html" target="_blank">Privacy Policy</a> and Terms of Service</label>
+      </div>
+
+      <button type="submit" id="submitBtn">Submit</button>
+      <div class="error-message" id="errorMessage"></div>
+    </form>
+    <div class="privacy-note">
+      By providing your phone number you agree to receive informational text messages from IntegriTurf. Consent is not a condition of purchase. Msg & data rates may apply. Reply STOP to cancel.<br />
+      View our <a href="privacy.html" target="_blank">Privacy Policy</a>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('optin-form');
+      const submitBtn = document.getElementById('submitBtn');
+      const errorMessage = document.getElementById('errorMessage');
+      const phoneInput = form.querySelector('input[name="phone"]');
+      if (!form || !submitBtn || !errorMessage || !phoneInput) return;
+  
+      function formatPhoneNumber(raw) {
+        const digits = raw.replace(/\D/g, '');
+        if (digits.length !== 10) return null;
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      }
+  
+      let rawPhone = '';
+      phoneInput.addEventListener('input', (e) => {
+        rawPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
+        const parts = [];
+        if (rawPhone.length > 0) parts.push('(' + rawPhone.slice(0, 3));
+        if (rawPhone.length >= 4) parts.push(') ' + rawPhone.slice(3, 6));
+        if (rawPhone.length >= 7) parts.push('-' + rawPhone.slice(6));
+        e.target.value = parts.join('').replace(/\(\)/g, '');
+      });
+  
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+  
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        errorMessage.style.display = 'none';
+  
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+  
+        const timestamp = new Date().toISOString();
+        if (rawPhone.length !== 10) {
+          errorMessage.textContent = 'Invalid phone number format.';
+          errorMessage.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          return;
+        }
+  
+        const makeWebhookUrl = 'https://hook.us2.make.com/k92h9keuxj88m49dirrtfo3jbnlyi5za';
+  
+        try {
+          const payload = {
+            firstName: data.firstName || '',
+            lastName: data.lastName || '',
+            email: data.email || '',
+            phone: rawPhone,
+            offers: data.offers ? 'Yes' : 'No',
+            timestamp: timestamp
+          };
+  
+          console.log("Sending payload to Make:", payload);
+  
+          const response = await fetch(makeWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+  
+          const responseText = await response.text();
+  
+          if (response.ok) {
+            window.location.href = 'success.html';
+          } else {
+            throw new Error(`Make webhook failed: ${responseText}`);
+          }
+        } catch (err) {
+          console.error('Error:', err);
+          errorMessage.textContent = "Something went wrong. Please try again later or call your sales rep at (858) 555-3421.";
+          errorMessage.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+        }
+      });
+    });
+  </script>
+  
+</body>
+</html>
