@@ -122,25 +122,18 @@
   </div>
 
   <script>
-
     function formatPhoneForAirtable(raw) {
       const digits = raw.replace(/\D/g, '');
-      if (digits.length !== 10) return raw; // fallback if formatting fails
+      if (digits.length !== 10) return raw;
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
-
+  
     window.addEventListener('DOMContentLoaded', function () {
       const form = document.getElementById('optin-form');
       const submitBtn = document.getElementById('submitBtn');
       const errorMessage = document.getElementById('errorMessage');
       const phoneInput = form.querySelector('input[name="phone"]');
       if (!form || !submitBtn || !errorMessage || !phoneInput) return;
-  
-      function formatPhoneNumber(raw) {
-        const digits = raw.replace(/\D/g, '');
-        if (digits.length !== 10) return null;
-        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-      }
   
       let rawPhone = '';
       phoneInput.addEventListener('input', (e) => {
@@ -161,8 +154,8 @@
   
         const formData = new FormData(form);
         const data = Object.fromEntries(formData);
-  
         const timestamp = new Date().toISOString();
+  
         if (rawPhone.length !== 10) {
           errorMessage.textContent = 'Invalid phone number format.';
           errorMessage.style.display = 'block';
@@ -173,8 +166,6 @@
   
         const makeWebhookUrl = 'https://hook.us2.make.com/k92h9keuxj88m49dirrtfo3jbnlyi5za';
   
-        
-
         try {
           const payload = {
             firstName: data.firstName || '',
@@ -193,20 +184,18 @@
             body: JSON.stringify(payload)
           });
   
-          const responseText = await response.text();
-          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Make webhook failed: ${response.status} — ${errorText}`);
+          }
+  
           const result = await response.json();
-
+  
           if (result.status === "success") {
             window.location.href = "success.html";
           } else {
             errorMessage.textContent = "Sorry, we couldn't find you in our system.";
             errorMessage.style.display = "block";
-          }
-          if (response.ok) {
-            window.location.href = 'success.html';
-          } else {
-            throw new Error(`Make webhook failed: ${responseText}`);
           }
         } catch (err) {
           console.error('Error:', err);
@@ -218,6 +207,7 @@
       });
     });
   </script>
+  
   
 </body>
 </html>
