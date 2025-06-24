@@ -185,27 +185,25 @@
           });
   
           const raw = await response.text();
-
           let result;
+  
           try {
             result = JSON.parse(raw);
           } catch (err) {
-            throw new Error(`Invalid JSON from Make: ${raw}`);
-          }
-          
-          if (response.ok && result.status === "success") {
-            window.location.href = "success.html";
-          } else {
-            errorMessage.textContent = "Sorry, we couldn't find you in our system.";
-            errorMessage.style.display = "block";
+            result = null;
           }
   
-          if (result.status === "success") {
+          if (response.ok && result?.status === "success") {
             window.location.href = "success.html";
-          } else {
+          } else if (result?.status === "not_found") {
             errorMessage.textContent = "Sorry, we couldn't find you in our system.";
             errorMessage.style.display = "block";
+          } else {
+            console.error("Unexpected response from Make:", raw);
+            errorMessage.textContent = "Something went wrong. Please try again later.";
+            errorMessage.style.display = 'block';
           }
+  
         } catch (err) {
           console.error('Error:', err);
           errorMessage.textContent = "Something went wrong. Please try again later or call your sales rep at (858) 555-3421.";
@@ -216,6 +214,7 @@
       });
     });
   </script>
+  
   
   
 </body>
