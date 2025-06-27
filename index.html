@@ -186,7 +186,6 @@
   
           const raw = await response.text();
           let result;
-  
           try {
             result = JSON.parse(raw);
           } catch (err) {
@@ -195,14 +194,19 @@
   
           if (response.ok && result?.status === "success") {
             window.location.href = "success.html";
-          } else if (result?.status === "not_found") {
+            return;
+          }
+  
+          // If we reach here, it wasn't a success
+          if (result?.status === "not_found") {
             errorMessage.textContent = "Sorry, we couldn't find you in our system.";
-            errorMessage.style.display = "block";
           } else {
             console.error("Unexpected response from Make:", raw);
             errorMessage.textContent = "Something went wrong. Please try again later.";
-            errorMessage.style.display = 'block';
           }
+          errorMessage.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
   
         } catch (err) {
           console.error('Error:', err);
@@ -213,7 +217,7 @@
         }
       });
     });
-  </script>
+  </script>  
   
   
   
