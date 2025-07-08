@@ -87,6 +87,7 @@
       color: #7CB342;
       text-decoration: none;
     }
+    
 
     @media (max-width: 600px) {
       .form-container {
@@ -117,10 +118,12 @@
       <input type="text" name="lastName" required>
 
       <label for="email">Email*</label>
-      <input type="email" name="email" required>
+      <input type="email" name="email" id="email" required>
+      <div class="inline-error" id="emailError"></div>
 
       <label for="phone">Phone Number*</label>
-      <input type="tel" name="phone" required>
+      <input type="tel" name="phone" id="phone" required>
+      <div class="inline-error" id="phoneError"></div>
 
       <div class="checkbox-group">
         
@@ -147,6 +150,15 @@
     </div>
   </div>
 
+  <style>
+    .inline-error {
+      font-size: 13px;
+      color: #d32f2f;
+      margin-top: 4px;
+      display: none;
+    }
+  </style>
+  
   <script>
     function formatPhoneForAirtable(raw) {
       const digits = raw.replace(/\D/g, '');
@@ -158,10 +170,21 @@
       const form = document.getElementById('optin-form');
       const submitBtn = document.getElementById('submitBtn');
       const errorMessage = document.getElementById('errorMessage');
-      const phoneInput = form.querySelector('input[name="phone"]');
-      if (!form || !submitBtn || !errorMessage || !phoneInput) return;
+      const phoneInput = document.querySelector('input[name="phone"]');
+      const emailInput = document.querySelector('input[name="email"]');
+  
+      const marketingOptIn = form.querySelector('input[name="marketing_optin"]');
+      const transactionalOptIn = form.querySelector('input[name="transactional_optin"]');
+  
+      // Add inline error containers
+      emailInput.insertAdjacentHTML('afterend', '<div class="inline-error" id="emailError"></div>');
+      phoneInput.insertAdjacentHTML('afterend', '<div class="inline-error" id="phoneError"></div>');
+      const emailError = document.getElementById('emailError');
+      const phoneError = document.getElementById('phoneError');
   
       let rawPhone = '';
+  
+      // Format phone while typing
       phoneInput.addEventListener('input', (e) => {
         rawPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
         const parts = [];
@@ -169,6 +192,28 @@
         if (rawPhone.length >= 4) parts.push(') ' + rawPhone.slice(3, 6));
         if (rawPhone.length >= 7) parts.push('-' + rawPhone.slice(6));
         e.target.value = parts.join('').replace(/\(\)/g, '');
+  
+        if (rawPhone.length !== 10 && rawPhone !== '') {
+          phoneError.textContent = 'Phone number must be 10 digits.';
+          phoneError.style.display = 'block';
+        } else {
+          phoneError.style.display = 'none';
+        }
+      });
+  
+      // Real-time email validation
+      emailInput.addEventListener('input', () => {
+        const value = emailInput.value.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+        if (value === '') {
+          emailError.style.display = 'none';
+        } else if (!emailPattern.test(value)) {
+          emailError.textContent = 'Please enter a valid email address.';
+          emailError.style.display = 'block';
+        } else {
+          emailError.style.display = 'none';
+        }
       });
   
       form.addEventListener('submit', async function (e) {
@@ -182,8 +227,28 @@
         const data = Object.fromEntries(formData);
         const timestamp = new Date().toISOString();
   
+        // Re-check email validity
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(data.email)) {
+          emailError.textContent = 'Please enter a valid email address.';
+          emailError.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          return;
+        }
+  
+        // Re-check phone validity
         if (rawPhone.length !== 10) {
-          errorMessage.textContent = 'Invalid phone number format.';
+          phoneError.textContent = 'Phone number must be 10 digits.';
+          phoneError.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          return;
+        }
+  
+        // Check checkboxes
+        if (!marketingOptIn.checked || !transactionalOptIn.checked) {
+          errorMessage.textContent = 'Please agree to both SMS opt-in checkboxes before submitting.';
           errorMessage.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Submit';
@@ -197,8 +262,9 @@
             firstName: data.firstName || '',
             lastName: data.lastName || '',
             email: data.email || '',
-            phone: rawPhone,  // <-- this is the raw 10-digit format!
-            offers: data.offers ? 'Yes' : 'No',
+            phone: rawPhone,
+            marketingOptIn: marketingOptIn.checked ? 'Yes' : 'No',
+            transactionalOptIn: transactionalOptIn.checked ? 'Yes' : 'No',
             timestamp: timestamp
           };
   
@@ -223,13 +289,13 @@
             return;
           }
   
-          // If we reach here, it wasn't a success
           if (result?.status === "not_found") {
             errorMessage.textContent = "Sorry, we couldn't find you in our system.";
           } else {
             console.error("Unexpected response from Make:", raw);
             errorMessage.textContent = "Something went wrong. Please try again later.";
           }
+  
           errorMessage.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Submit';
@@ -243,7 +309,8 @@
         }
       });
     });
-  </script>  
+  </script>
+  
   
   
   
